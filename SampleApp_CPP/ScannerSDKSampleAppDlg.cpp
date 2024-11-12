@@ -904,16 +904,20 @@ void CScannerSDKSampleAppDlg::OnPullTrigger()
 	if (m_ScannerCommands == 0) {
 		return;
 	}
-
 	if (!triggerRunning) {
 		triggerRunning = true;
 	}
-
 	while (triggerRunning) {
 		long status = 1;
 		m_ScannerCommands->cmdPullTrigger(SelectedScannerID, Async, &status);
 		LOG(status, "PULL_TRIGGER");
-		std::this_thread::sleep_for(std::chrono::seconds(30)); // Wait 30 seconds
+
+		// Wait for 30 seconds
+		auto start = std::chrono::steady_clock::now();
+		auto end = start + std::chrono::seconds(20);
+		while (std::chrono::steady_clock::now() < end) {
+			// Do nothing, just wait for 30 seconds
+		}
 	}
 }
 
