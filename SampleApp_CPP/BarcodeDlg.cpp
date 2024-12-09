@@ -282,6 +282,18 @@ void CBarcodeDlg::SetBarcode(BSTR ScanData)
     int SymbologyType = _wtoi(y);
     txtSymbology.SetWindowTextW(GetSymbology(SymbologyType));
 
+    // Create a modal message box to notify the user
+    int result = AfxMessageBox(
+        _T("WARNING: Barcode already present on part!\n\nPart should NOT be marked again!"),
+        MB_OK | MB_ICONWARNING | MB_DEFBUTTON1
+    );
+
+    // Handle the result after the user clicks OK
+    if (result == IDOK)
+    {
+        // After acknowledging, you can reset or perform any other needed actions.
+        m_hasBarcode = false; // Example: Reset the flag if needed
+    }
 }
 
 void CBarcodeDlg::SetScannerID(std::wstring *ScannerID)
@@ -379,6 +391,9 @@ void CBarcodeDlg::OnClear()
     m_editBarcode.SetWindowText(L"");
     txtDecodedData.SetWindowTextW(_T(""));
     txtSymbology.SetWindowTextW(_T(""));
+
+    // Clear the barcode presence flag
+    m_hasBarcode = false;
 }
 
 
@@ -511,4 +526,5 @@ void CBarcodeDlg::OnBrowseScript()
         m_chkDriverADF.SetWindowText(L"Unload");
         m_DADFSource = "";
     }
+
 }

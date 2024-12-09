@@ -20,11 +20,15 @@
 #include <exception>
 #include "QuickXmlParser.h"
 #include "ScanToConnectDlg.h"
+#include "BarcodeDlg.h"
 
 #include "ScannerCommands.h"
 #include <sstream>
 #include <thread>
 #include <chrono>
+#include <windows.h>
+#include <iostream>
+#include <string>
 
 std::thread triggerThread; // Global variable to hold the trigger thread
 bool triggerRunning = false; // Flag to track if the trigger thread is running
@@ -32,6 +36,17 @@ bool triggerRunning = false; // Flag to track if the trigger thread is running
 #ifdef _DEBUG
 	#define new DEBUG_NEW
 #endif
+
+BOOL CScannerSDKSampleAppDlg::PreTranslateMessage(MSG* pMsg)
+{
+	if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_F3)
+	{
+		OnPullTrigger(); // Handle everything in OnPullTrigger
+		return TRUE; // Indicate the message has been handled
+	}
+	return CDialog::PreTranslateMessage(pMsg);
+}
+
 
 CScannerSDKSampleAppDlg::CScannerSDKSampleAppDlg(CWnd* pParent /*=NULL*/)
 : CDialog(CScannerSDKSampleAppDlg::IDD, pParent)
@@ -899,27 +914,76 @@ void CScannerSDKSampleAppDlg::SetCommandMode(int Async)
 		LOG(0, "COMMAND RESET TO SYNC MODE")
 }
 
+// Define a callback function to enumerate windows
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam)
+{
+	char className[256];
+	GetClassNameA(hwnd, className, sizeof(className));
+
+	// Check if the window class matches a message box window (i.e., popup)
+	if (strcmp(className, "#32770") == 0) // Standard class name for popups
+	{
+		BOOL* popupPresent = reinterpret_cast<BOOL*>(lParam);
+		*popupPresent = TRUE;  // Mark that a popup window is found
+		return FALSE;          // Stop enumerating windows
+	}
+
+	return TRUE;               // Continue enumerating
+}
+
+// Check if a popup window is present
+BOOL IsPopupWindowPresent()
+{
+	BOOL popupPresent = FALSE;
+
+	// Enumerate all windows and check if any message box is present
+	EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&popupPresent));
+
+	return popupPresent;
+}
+
 void CScannerSDKSampleAppDlg::OnPullTrigger()
 {
-	if (m_ScannerCommands == 0) {
+	if (m_ScannerCommands == nullptr)
 		return;
-	}
-	if (!triggerRunning) {
-		triggerRunning = true;
-	}
-	while (triggerRunning) {
-		long status = 1;
-		m_ScannerCommands->cmdPullTrigger(SelectedScannerID, Async, &status);
-		LOG(status, "PULL_TRIGGER");
 
-		// Wait for 30 seconds
-		auto start = std::chrono::steady_clock::now();
-		auto end = start + std::chrono::seconds(20);
-		while (std::chrono::steady_clock::now() < end) {
-			// Do nothing, just wait for 30 seconds
-		}
+	long status = 1;
+
+	// Trigger the scanner
+	m_ScannerCommands->cmdPullTrigger(SelectedScannerID, Async, &status);
+	LOG(status, "PULL_TRIGGER");
+
+	// Wait for 2 seconds to simulate the laser operation
+	Sleep(2000);
+
+	// Release the trigger
+	m_ScannerCommands->cmdReleaseTrigger(SelectedScannerID, Async, &status);
+	LOG(status, "RELEASE_TRIGGER");
+
+	// Check if a popup window is currently open (indicating barcode is present)
+	if (IsPopupWindowPresent())
+	{
+		// If a popup is present, do not trigger F2 (barcode already present)
+		std::cout << "A popup window is present. Barcode is already on the part!" << std::endl;
+	}
+	else
+	{
+		// If no popup is present, simulate F2 key press (barcode not detected)
+		std::cout << "No popup window detected. Simulating F2 key press for new barcode." << std::endl;
+
+		// Simulate F2 key press
+		INPUT inputs[2] = {};
+		inputs[0].type = INPUT_KEYBOARD;
+		inputs[0].ki.wVk = VK_F2;
+
+		inputs[1].type = INPUT_KEYBOARD;
+		inputs[1].ki.wVk = VK_F2;
+		inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
+
+		SendInput(2, inputs, sizeof(INPUT));
 	}
 }
+
 
 void CScannerSDKSampleAppDlg::OnReleaseTrigger()
 {

@@ -1,10 +1,14 @@
 #pragma once
 
+#include <Windows.h>
+
 #include "afxcmn.h"
 #include "afxwin.h"
 #include "ScannerSDKSampleApp.h"
 #include "TabWindowManager.h"
 #include "ScannerList.h"
+
+
 
 enum HostMode
 {
@@ -59,6 +63,8 @@ public:
     bool RemoveScannerOnPnP(BSTR outXml);
     void RefreshScannerList();
     bool QueryRsmValues(std::wstring ScannerID, RsmMap& RsmValueMap);
+    // F2 to call pull trigger
+    virtual BOOL PreTranslateMessage(MSG* pMsg) override;
 
     // Scanner event routers
     void OnScanData(short reserved, BSTR scanData);

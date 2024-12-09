@@ -14,6 +14,9 @@ class CBarcodeDlg : public CDialog
 {
 	DECLARE_DYNAMIC(CBarcodeDlg)
 
+private:
+	bool m_hasBarcode = false; // Flag to track barcode presence
+
 public:
 	CBarcodeDlg(CWnd* pParent = NULL);   
 	virtual ~CBarcodeDlg();
@@ -23,6 +26,8 @@ public:
 	wstring SelectedScannerID;
 	int Async;
 	void SetAsync(int *ParaAsync);
+
+	bool HasBarcode() const { return m_hasBarcode; } // Getter for the flag
 
 	enum
 	{
