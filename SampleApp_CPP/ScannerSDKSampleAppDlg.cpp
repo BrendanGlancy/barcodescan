@@ -125,14 +125,14 @@ BOOL CScannerSDKSampleAppDlg::OnInitDialog()
 	InitScannerListControl();
 	Async = 0;
 
-	return TRUE; 
+	return TRUE;
 }
 
 void CScannerSDKSampleAppDlg::OnPaint()
 {
 	if ( IsIconic() )
 	{
-		CPaintDC dc(this); 
+		CPaintDC dc(this);
 		SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
 		int cxIcon = GetSystemMetrics(SM_CXICON);
 		int cyIcon = GetSystemMetrics(SM_CYICON);
@@ -303,7 +303,7 @@ bool CScannerSDKSampleAppDlg::TranslateProtocolNames(SCANNER& Scanner, CString& 
 
 	if(*Name == 0) return false;
 	int Protocol = GetTabManager().GetTabDlg<CConfigurationDlg>().QueryScannerProtocol();
-	
+
 	if(wcsncmp(Name, L"USBIBMHID", 9) == 0)
 	{
 		if(Protocol == SCANNER_TYPES_IBMHID || Protocol == SCANNER_TYPES_ALL)
@@ -427,13 +427,13 @@ bool CScannerSDKSampleAppDlg::ShowScanners(BSTR outXml)
 
 		val = x.Translate(tag[0].AttribValues[0]); //Scanner Type
 		CString sType;
-		if(!TranslateProtocolNames(sc, sType, val)) 
+		if(!TranslateProtocolNames(sc, sType, val))
 		{
 			if(p == 0) break;
 			x.ClearValues(tag);
 			continue;
 		}
-		
+
 		val = x.Translate(tag[1].Value); //Scanner ID
 		sc.ID = _ttoi(val);
 		m_ScannerListControl.SetField(0, val);
@@ -443,7 +443,7 @@ bool CScannerSDKSampleAppDlg::ShowScanners(BSTR outXml)
 
 		val = x.Translate(tag[6].Value); //Scanner Model Number
 		sc.Model = val;
-		m_ScannerListControl.SetField( 2, val); 
+		m_ScannerListControl.SetField( 2, val);
 
  		val = x.Translate(tag[7].Value); //Firmware
 		sc.Firmware = val;
@@ -463,9 +463,9 @@ bool CScannerSDKSampleAppDlg::ShowScanners(BSTR outXml)
 
 		val = x.Translate(tag[3].Value); //GUID
 		sc.GUID = val;
-		m_ScannerListControl.SetField( 7, val); 
+		m_ScannerListControl.SetField( 7, val);
 		m_ScannerMap[sc.ID] = sc;
-		
+
 		if(p == 0) break;
 		x.ClearValues(tag);
 	}
@@ -533,13 +533,13 @@ bool CScannerSDKSampleAppDlg::AddScannersOnPnP(BSTR outXml)
 
 		val = x.Translate(tag[0].AttribValues[0]); //Scanner Type
 		CString sType;
-		if(!TranslateProtocolNames(sc, sType, val)) 
+		if(!TranslateProtocolNames(sc, sType, val))
 		{
 			if(p == 0) break;
 			x.ClearValues(tag);
 			continue;
 		}
-		
+
 		wchar_t* IdVal = x.Translate(tag[1].Value);
 		sc.ID = _ttoi(IdVal);
 		RsmMap map;
@@ -557,7 +557,7 @@ bool CScannerSDKSampleAppDlg::AddScannersOnPnP(BSTR outXml)
 		sc.ConfigName = x.Translate(tag[7].Value);
 
 		m_ScannerMap[sc.ID] = sc;
-		
+
 		if(p == 0) break;
 		x.ClearValues(tag);
 	}
@@ -582,7 +582,7 @@ bool CScannerSDKSampleAppDlg::QueryRsmValues(std::wstring ScannerID, RsmMap &Rsm
 	{
 		if(pos != startpos) sAttribList << L",";
 		RsmValueMap.GetNextAssoc( pos, Key, Value );
-		
+
 		sAttribList << Key;
 	}
 
@@ -737,8 +737,8 @@ void CScannerSDKSampleAppDlg::OnDiscoverScanners()
 		m_ScannerMap.RemoveAll();
 		cmbScanner.ResetContent();
 	}
-	
-	//Open Scanners of all types or a particular type specified by the selected protocol(Note: In 
+
+	//Open Scanners of all types or a particular type specified by the selected protocol(Note: In
 	//this particular use case, either scanners with all protocols or one specific
 	//protocol will be opened.)
 	SHORT ScannerTypesArray[TOTAL_SCANNER_TYPES] = {0, 0, 0, 0, 0, 0, 0, 0,0};
@@ -775,7 +775,7 @@ void CScannerSDKSampleAppDlg::InitScannerListControl()
 	m_ScannerListControl.SetHeader(_T("#"), 25);
 	m_ScannerListControl.SetHeader(_T("Com Interface"), 100);
 	m_ScannerListControl.SetHeader(_T("Model #"), 125);
-	m_ScannerListControl.SetHeader(_T("Firmware"), 125); 
+	m_ScannerListControl.SetHeader(_T("Firmware"), 125);
 	m_ScannerListControl.SetHeader(_T("Config Name"), 125);
 	m_ScannerListControl.SetHeader(_T("Built"), 75);
 	m_ScannerListControl.SetHeader(_T("Serial # or Port #"), 125);
@@ -840,7 +840,7 @@ void CScannerSDKSampleAppDlg::UpdateScannerClaimedStatus()
 	{
 		int ID= m_ClaimedScannerList.GetNext(pos);
 		tempLst.AddHead(ID);
-	}	
+	}
 
 	pos = tempLst.GetHeadPosition();
     while(pos != NULL)
@@ -854,7 +854,7 @@ void CScannerSDKSampleAppDlg::UpdateScannerClaimedStatus()
 				 m_ClaimedScannerList.RemoveAt(loc);
 			 }
 		}
-	}	
+	}
 }
 
 
@@ -866,7 +866,7 @@ void CScannerSDKSampleAppDlg::UpdateDisabledScannerStatus()
 	{
 		int ID= m_DisabledScannerList.GetNext(pos);
 		tempLst.AddHead(ID);
-	}	
+	}
 
 	pos = tempLst.GetHeadPosition();
     while(pos != NULL)
@@ -878,7 +878,7 @@ void CScannerSDKSampleAppDlg::UpdateDisabledScannerStatus()
 		     if (loc!=NULL)
 			    m_DisabledScannerList.RemoveAt(loc);
 		}
-	}	
+	}
 }
 
 bool CScannerSDKSampleAppDlg::ScannerListContains(int scnID)
@@ -961,7 +961,7 @@ void CScannerSDKSampleAppDlg::OnPullTrigger()
 	LOG(status, "RELEASE_TRIGGER");
 
 	// Check if a popup window is currently open (indicating barcode is present)
-	if (IsPopupWindowPresent())
+	if (!IsPopupWindowPresent())
 	{
 		// If a popup is present, do not trigger F2 (barcode already present)
 		std::cout << "A popup window is present. Barcode is already on the part!" << std::endl;
@@ -996,7 +996,7 @@ void CScannerSDKSampleAppDlg::OnReleaseTrigger()
 		triggerRunning = false;
 		triggerThread.join(); // Wait for the trigger thread to finish
 	}
-	
+
 	long status =1;
 	m_ScannerCommands->cmdReleaseTrigger(SelectedScannerID,Async,&status);
 	LOG(status, "RELEASE_TRIGGER");

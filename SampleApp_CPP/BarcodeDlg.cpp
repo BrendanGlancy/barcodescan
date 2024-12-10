@@ -224,7 +224,7 @@ LPCTSTR CBarcodeDlg::GetSymbology(int Code)
         return (_T("EAN-8 + 5 SUPPLEMENTAL"));
     case ST_EAN13_5:
         return (_T("EAN-13 + 5 SUPPLEMENTAL"));
-    case ST_UPCE1_5:    
+    case ST_UPCE1_5:
         return (_T("UPC-E1 + 5 SUPPLEMENTAL"));
     case ST_MACRO_MICRO_PDF:
         return (_T("MACRO MICRO PDF"));
@@ -324,13 +324,13 @@ void CBarcodeDlg::SetLocaleConfigInfo()
     long status = 1;
     bool Enable = false;
     int Lang = -1;
-    
+
     m_cmbSelectLocale.SetItemData(m_cmbSelectLocale.AddString(L"DEFAULT"), DEFAULT);
     m_cmbSelectLocale.SetItemData(m_cmbSelectLocale.AddString(L"FRENCH"), FRENCH);
     m_cmbSelectLocale.SetItemData(m_cmbSelectLocale.AddString(L"ENGLISH"), ENGLISH);
-    
+
     m_bDisableEvents = true;
-    
+
     if(S_OK == SC->cmdGetKeyboardEmulatorConfig(Enable, Lang, Async, &status))
     {
         m_cmbSelectLocale.SetCurSel(Lang);
@@ -345,7 +345,7 @@ void CBarcodeDlg::SetLocaleConfigInfo()
             m_cmbSelectLocale.EnableWindow(0);
         }
     }
-    
+
     m_bDisableEvents = false;
 }
 
@@ -372,7 +372,7 @@ BOOL CBarcodeDlg::OnInitDialog()
     OnClear();
     SetLocaleConfigInfo();
     m_chkDriverADF.EnableWindow(FALSE);
-    return TRUE;  
+    return TRUE;
 }
 
 HBRUSH CBarcodeDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
@@ -380,7 +380,7 @@ HBRUSH CBarcodeDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
     CDialog::OnCtlColor(pDC, pWnd, nCtlColor);
     if(!m_brush.m_hObject)
         m_brush.CreateSolidBrush(RGB(247, 250, 253));
-    
+
     SetLabelBkg(pDC, pWnd, IDC_STATIC);
     return m_brush;
 }
@@ -392,6 +392,7 @@ void CBarcodeDlg::OnClear()
     txtDecodedData.SetWindowTextW(_T(""));
     txtSymbology.SetWindowTextW(_T(""));
 
+    // maybe this is causing the problem
     // Clear the barcode presence flag
     m_hasBarcode = false;
 }
@@ -400,10 +401,10 @@ void CBarcodeDlg::OnClear()
 void CBarcodeDlg::OnBnClickedEnablelang()
 {
     if(m_bDisableEvents) return;
-    
+
     CHECK_CMD0;
     long status = 1;
-    
+
     if(m_chkEnableLocaleSelection.GetCheck())
     {
         SC->cmdEnableKeyboardEmulator(true, Async, &status);
@@ -421,12 +422,12 @@ void CBarcodeDlg::OnBnClickedEnablelang()
 void CBarcodeDlg::OnCbnSelchangeCmblang()
 {
     if(m_bDisableEvents) return;
-    
+
     CHECK_CMD0;
-    
+
     int inSel = (int) m_cmbSelectLocale.GetItemData(m_cmbSelectLocale.GetCurSel());
     long status = 1;
-    
+
     SC->cmdSetKeyboardEmulatorLocale(inSel, Async, &status);
     switch(inSel)
     {
@@ -470,7 +471,7 @@ void CBarcodeDlg::SetDriverADFbySource()
     scriptSource.Replace(L">", L"&gt;");
     scriptSource.Replace(L"\'", L"&apos;");
     scriptSource.Replace(L"\"", L"&quot;");
-    
+
     SC->cmdSetDADFSource(scriptSource.GetString(), Async, &status);
 }
 
@@ -509,17 +510,17 @@ void CBarcodeDlg::OnEditScript()
 
 void CBarcodeDlg::OnBrowseScript()
 {
-    CFileDialog fOpenDlg(TRUE, L"dadf", L"", OFN_HIDEREADONLY|OFN_FILEMUSTEXIST, 
+    CFileDialog fOpenDlg(TRUE, L"dadf", L"", OFN_HIDEREADONLY|OFN_FILEMUSTEXIST,
                             L"DADF files (*.dadf)|*.dadf||", this);
-    
+
     fOpenDlg.m_pOFN->lpstrTitle = L"Driver ADF Scripts";
     fOpenDlg.m_pOFN->lpstrInitialDir = L".";
-    
+
     if ( fOpenDlg.DoModal() == IDOK )
     {
         m_DADFPath = fOpenDlg.GetPathName();
         if(m_DADFPath.IsEmpty()) return;
-    
+
         SetDriverADFbyPath();
         m_chkDriverADF.EnableWindow(TRUE);
         m_chkDriverADF.SetCheck(BST_CHECKED);
