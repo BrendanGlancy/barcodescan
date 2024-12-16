@@ -1,15 +1,15 @@
 #pragma once
 
 #include <Windows.h>
-
 #include "afxcmn.h"
 #include "afxwin.h"
 #include "ScannerSDKSampleApp.h"
 #include "TabWindowManager.h"
 #include "ScannerList.h"
+#include <psapi.h>
+#pragma comment(lib, "psapi.lib") // Link the psapi.lib library
 
-
-
+// Enum for Host Modes
 enum HostMode
 {
     MODE_ALL = -1,
@@ -26,8 +26,7 @@ enum HostMode
     MODE_SSI_IP = 10
 };
 
-// This structure is the basic unit of a Scanner List which contains Information for all
-// discovered scanners
+// SCANNER structure definition
 typedef struct _SCANNER
 {
     CString Type;
@@ -43,10 +42,14 @@ typedef struct _SCANNER
     int HostMode{ -2 };
 } SCANNER, * PSCANNER;
 
-// This map stores the scanner IDs and corresponding SCANNER objects.
+// ScannerMap and RsmMap for scanner data management
 typedef CMap<int, int, SCANNER, SCANNER> ScannerMap;
-// This map stores RSM attribute IDs and their corresponding values.
 typedef CMap<int, int, std::wstring, std::wstring> RsmMap;
+
+// Forward declaration for global variable and function
+extern HWND g_hwndEzCad2;  // Global handle for EzCad2 window
+BOOL CALLBACK EnumEZCADProc(HWND hwnd, LPARAM lParam);  // Function to find EzCad2 window
+BOOL IsPopupWindowPresent();  // Function to check if a popup window is present
 
 class CScannerSDKSampleAppDlg : public CDialog
 {
@@ -54,6 +57,7 @@ public:
     CScannerSDKSampleAppDlg(CWnd* pParent = NULL);
     ~CScannerSDKSampleAppDlg();
 
+    // Various methods for handling scanners, status, and triggers
     void UpdateScannerStatus();
     void StartupControllers();
     void CheckAllScannerTypes(bool res);
@@ -63,10 +67,9 @@ public:
     bool RemoveScannerOnPnP(BSTR outXml);
     void RefreshScannerList();
     bool QueryRsmValues(std::wstring ScannerID, RsmMap& RsmValueMap);
-    // F2 to call pull trigger
     virtual BOOL PreTranslateMessage(MSG* pMsg) override;
 
-    // Scanner event routers
+    // Event handling methods for scanner data and other responses
     void OnScanData(short reserved, BSTR scanData);
     void OnImageEvent(LPBYTE MediaBuffer, LONG BufferSize);
     void ParameterBarcodeEvent(LPBYTE MediaBuffer, LONG BufferSize);
@@ -80,6 +83,7 @@ public:
     void UpdateScannerClaimedStatus();
     void UpdateDisabledScannerStatus();
     bool ScannerListContains(int scnID);
+
     enum { IDD = IDD_SCANNERSDKSAMPLEAPP_DIALOG };
 
 protected:
@@ -105,12 +109,11 @@ public:
     SCANNER* GetScannerInfo(std::wstring ScannerID);
 
     afx_msg void OnDiscoverScanners();
-    afx_msg void OnPullTrigger();
+    afx_msg void OnPullTrigger();  // Trigger function, modified to handle F2 key press
     afx_msg void OnReleaseTrigger();
 
 public:
     CEdit txtStatus;
-
     CList<int, int> m_DisabledScannerList;
     CList<int, int> m_ClaimedScannerList;
 
@@ -131,6 +134,7 @@ private:
     int Async{ 0 };
 
     ScannerMap m_ScannerMap;  // Populated by During PNP Attach/Detach and a forced discovery via command interface.
+
 public:
     afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
 };

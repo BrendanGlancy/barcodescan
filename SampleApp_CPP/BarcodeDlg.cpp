@@ -36,6 +36,8 @@ void CBarcodeDlg::DoDataExchange(CDataExchange* pDX)
     DDX_Control(pDX, IDC_EDIT_Barcode, m_editBarcode);
 }
 
+bool m_hasBarcode = FALSE;
+
 LPCTSTR CBarcodeDlg::GetSymbology(int Code)
 {
     switch(Code)
@@ -265,6 +267,8 @@ LPCTSTR CBarcodeDlg::GetSymbology(int Code)
 
 void CBarcodeDlg::SetBarcode(BSTR ScanData)
 {
+    m_hasBarcode = true;
+
     this->EnableWindow(true);
     //m_EmbeddedBrowser.ShowXML(ScanData);
     m_editBarcode.SetWindowText(ScanData);
@@ -281,18 +285,20 @@ void CBarcodeDlg::SetBarcode(BSTR ScanData)
     CQuickXmlParser::xptr y = x.Translate(tag[0].Value);
     int SymbologyType = _wtoi(y);
     txtSymbology.SetWindowTextW(GetSymbology(SymbologyType));
+    
+    LOG(0, "m_hasBarcode set to true");
 
-    // Create a modal message box to notify the user
+    Sleep(1000);
+    // Show modal message box and act based on user response
     int result = AfxMessageBox(
-        _T("WARNING: Barcode already present on part!\n\nPart should NOT be marked again!"),
+        _T("WARNING: Barcode already present on part!\n\nReplace it with unmarked part before pressing OK"),
         MB_OK | MB_ICONWARNING | MB_DEFBUTTON1
     );
 
-    // Handle the result after the user clicks OK
     if (result == IDOK)
     {
-        // After acknowledging, you can reset or perform any other needed actions.
-        m_hasBarcode = false; // Example: Reset the flag if needed
+        m_hasBarcode = false;
+        LOG(0, "User acknowledged barcode warning.");
     }
 }
 

@@ -85,7 +85,6 @@ void CScannerCommands::cmdDestroyInstance()
             if(m_dwCookie != 0 && ScannerEventSink)
             {
                 BOOL stat = AfxConnectionUnadvise(ScannerInterface, DIID__ICoreScannerEvents, ScannerEventSinkUnknown, FALSE, m_dwCookie);
-                BOOL stat = AfxConnectionUnadvise(ScannerInterface, DIID__ICoreScannerEvents, ScannerEventSinkUnknown, FALSE, m_dwCookie);
                 delete ScannerEventSink;
                 ScannerEventSink = 0;
                 m_dwCookie = 0;

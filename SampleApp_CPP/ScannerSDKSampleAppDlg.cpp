@@ -30,16 +30,16 @@
 #include <iostream>
 #include <string>
 
-std::thread triggerThread; // Global variable to hold the trigger thread
-bool triggerRunning = false; // Flag to track if the trigger thread is running
 
 #ifdef _DEBUG
 	#define new DEBUG_NEW
 #endif
 
+CBarcodeDlg barcode;
+
 BOOL CScannerSDKSampleAppDlg::PreTranslateMessage(MSG* pMsg)
 {
-	if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_F3)
+	if (pMsg->message == WM_KEYDOWN && (pMsg->wParam == '1' || pMsg->wParam == VK_NUMPAD1)) 
 	{
 		OnPullTrigger(); // Handle everything in OnPullTrigger
 		return TRUE; // Indicate the message has been handled
@@ -914,33 +914,134 @@ void CScannerSDKSampleAppDlg::SetCommandMode(int Async)
 		LOG(0, "COMMAND RESET TO SYNC MODE")
 }
 
-// Define a callback function to enumerate windows
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam)
 {
 	char className[256];
-	GetClassNameA(hwnd, className, sizeof(className));
 
-	// Check if the window class matches a message box window (i.e., popup)
-	if (strcmp(className, "#32770") == 0) // Standard class name for popups
+	// Get the class name of the window
+	if (GetClassNameA(hwnd, className, sizeof(className)))
 	{
-		BOOL* popupPresent = reinterpret_cast<BOOL*>(lParam);
-		*popupPresent = TRUE;  // Mark that a popup window is found
-		return FALSE;          // Stop enumerating windows
+		// Check if the class name matches the standard message box class name
+		if (strcmp(className, "#32770") == 0) // Standard class name for dialog boxes
+		{
+			// Set the BOOL value to TRUE to indicate a popup is present
+			BOOL* popupPresent = reinterpret_cast<BOOL*>(lParam);
+			*popupPresent = TRUE;
+
+			return TRUE; // Stop enumerating windows
+		}
 	}
 
-	return TRUE;               // Continue enumerating
+	return FALSE; // Continue enumerating
 }
 
-// Check if a popup window is present
+// Global variable to store the EzCad2 window handle
+HWND g_hwndEzCad2 = NULL;
+
+// Callback function to enumerate windows by PID
+BOOL CALLBACK EnumEzCadProcByPID(HWND hwnd, LPARAM lParam)
+{
+	DWORD processId;
+	GetWindowThreadProcessId(hwnd, &processId);
+
+	// Check if the process ID matches the EzCad2 process PID passed via lParam
+	if (processId == lParam)
+	{
+		// Save the window handle in the global variable
+		g_hwndEzCad2 = hwnd;
+		return FALSE;  // Stop enumerating windows
+	}
+
+	return TRUE;  // Continue enumerating
+}
+
+// Function to find the PID of a process by its name
+DWORD FindProcessIdByName(const std::wstring& processName)
+{
+	DWORD processIds[1024], cbNeeded, cProcesses;
+	if (!EnumProcesses(processIds, sizeof(processIds), &cbNeeded))
+		return 0;
+
+	cProcesses = cbNeeded / sizeof(DWORD);
+
+	for (unsigned int i = 0; i < cProcesses; i++)
+	{
+		if (processIds[i] != 0)
+		{
+			TCHAR szProcessName[MAX_PATH] = TEXT("<unknown>");
+			HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processIds[i]);
+
+			if (NULL != hProcess)
+			{
+				HMODULE hMod;
+				DWORD cbNeeded;
+				if (EnumProcessModules(hProcess, &hMod, sizeof(hMod), &cbNeeded))
+				{
+					GetModuleBaseName(hProcess, hMod, szProcessName, sizeof(szProcessName) / sizeof(TCHAR));
+				}
+			}
+
+			// Check if the process name matches EzCad2
+			if (_wcsicmp(szProcessName, processName.c_str()) == 0)
+			{
+				CloseHandle(hProcess);
+				return processIds[i];
+			}
+
+			CloseHandle(hProcess);
+		}
+	}
+
+	return 0; // Process not found
+}
+
 BOOL IsPopupWindowPresent()
 {
 	BOOL popupPresent = FALSE;
 
-	// Enumerate all windows and check if any message box is present
-	EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&popupPresent));
+	// Callback function to identify popup windows
+	auto enumProc = [](HWND hwnd, LPARAM lParam) -> BOOL {
+		BOOL& popupPresent = *reinterpret_cast<BOOL*>(lParam);
 
-	return popupPresent;
+		if (IsWindowVisible(hwnd) && GetParent(hwnd) == NULL)
+		{
+			// Get the class name of the window
+			TCHAR className[MAX_PATH];
+			GetClassName(hwnd, className, MAX_PATH);
+
+			// Log the class name for debugging
+			std::wcout << L"Checking window class: " << className << std::endl;
+
+
+			// Ensure that we're not mistaking the main application window as a popup
+			HWND hwndOwner = GetParent(hwnd);
+			if (hwndOwner == NULL) // If the window has no parent, it might be a main window
+			{
+				// Skip the main application window by its class name (you can replace this)
+				TCHAR wndClass[MAX_PATH];
+				GetClassName(hwnd, wndClass, MAX_PATH);
+
+				// Log the main window check for debugging
+				std::wcout << L"Main window class: " << wndClass << std::endl;
+
+				// If the window is the main window, skip it
+				if (_tcsicmp(wndClass, TEXT("YourAppMainWindowClass")) == 0)
+				{
+					return TRUE; // Skip this window
+				}
+			}
+		}
+		return TRUE; // Continue enumeration
+		};
+
+	EnumWindows(enumProc, reinterpret_cast<LPARAM>(&popupPresent));
+
+	return popupPresent; // Return whether a popup is present
 }
+
+
+
+#include <chrono> // For high-resolution clock
 
 void CScannerSDKSampleAppDlg::OnPullTrigger()
 {
@@ -953,34 +1054,58 @@ void CScannerSDKSampleAppDlg::OnPullTrigger()
 	m_ScannerCommands->cmdPullTrigger(SelectedScannerID, Async, &status);
 	LOG(status, "PULL_TRIGGER");
 
-	// Wait for 2 seconds to simulate the laser operation
-	Sleep(2000);
+	// Start measuring time
+	auto start_time = std::chrono::high_resolution_clock::now();
+
+	Sleep(1000); // Simulate barcode processing time
 
 	// Release the trigger
 	m_ScannerCommands->cmdReleaseTrigger(SelectedScannerID, Async, &status);
 	LOG(status, "RELEASE_TRIGGER");
 
-	// Check if a popup window is currently open (indicating barcode is present)
-	if (IsPopupWindowPresent())
+	// Measure elapsed time
+	auto end_time = std::chrono::high_resolution_clock::now();
+	auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+
+
+	// Logic to decide whether to send F2
+	if (elapsed_ms > 1600)
 	{
-		// If a popup is present, do not trigger F2 (barcode already present)
-		std::cout << "A popup window is present. Barcode is already on the part!" << std::endl;
+		LOG(0, "Elapsed time exceeds 800ms. Aborting F2 trigger.");
+		return;
 	}
-	else
+
+	// Find the EzCad2 process PID dynamically
+	DWORD pid = FindProcessIdByName(L"EzCad2.exe");
+
+	if (pid == 0)
 	{
-		// If no popup is present, simulate F2 key press (barcode not detected)
-		std::cout << "No popup window detected. Simulating F2 key press for new barcode." << std::endl;
+		std::cerr << "EzCad2 process not found." << std::endl;
+		return;
+	}
+
+	// Find EzCad2 window by process ID using the retrieved PID
+	EnumWindows(EnumEzCadProcByPID, static_cast<LPARAM>(pid));
+
+	// Send F2 to EzCad2 if elapsed time indicates no barcode
+	if (g_hwndEzCad2)
+	{
+		HWND hwndCurrent = this->GetSafeHwnd();  // Get current window handle
+
+		// Bring EzCad2 to the foreground
+		::SetForegroundWindow(g_hwndEzCad2);
 
 		// Simulate F2 key press
-		INPUT inputs[2] = {};
-		inputs[0].type = INPUT_KEYBOARD;
-		inputs[0].ki.wVk = VK_F2;
+		::PostMessage(g_hwndEzCad2, WM_KEYDOWN, VK_F2, 0);  // Key down
+		::PostMessage(g_hwndEzCad2, WM_KEYUP, VK_F2, 0);    // Key up
 
-		inputs[1].type = INPUT_KEYBOARD;
-		inputs[1].ki.wVk = VK_F2;
-		inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
+		LOG(status, "F2 sent to EzCad2");
 
-		SendInput(2, inputs, sizeof(INPUT));
+		// Refocus the original window
+		if (hwndCurrent)
+		{
+			::SetForegroundWindow(hwndCurrent);
+		}
 	}
 }
 
@@ -990,11 +1115,6 @@ void CScannerSDKSampleAppDlg::OnReleaseTrigger()
 	if (m_ScannerCommands == 0)
 	{
 		return;
-	}
-
-	if (triggerRunning) {
-		triggerRunning = false;
-		triggerThread.join(); // Wait for the trigger thread to finish
 	}
 	
 	long status =1;
